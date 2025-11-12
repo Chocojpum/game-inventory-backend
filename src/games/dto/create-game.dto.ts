@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsArray, IsObject, IsDateString } from 'class-validator';
+import { IsString, IsOptional, IsArray, IsObject, IsDateString, IsEnum } from 'class-validator';
 
 export class CreateGameDto {
   @IsString()
@@ -18,6 +18,13 @@ export class CreateGameDto {
   platform: string;
 
   @IsOptional()
+  @IsString()
+  consoleId?: string;
+
+  @IsEnum(['physical', 'digital'])
+  physicalDigital: 'physical' | 'digital';
+
+  @IsOptional()
   @IsObject()
   customAttributes?: Record<string, any>;
 
@@ -27,31 +34,39 @@ export class CreateGameDto {
 }
 
 export class UpdateGameDto {
-    @IsOptional()
-    @IsString()
-    title?: string;
-  
-    @IsOptional()
-    @IsArray()
-    alternateTitles?: string[];
-  
-    @IsOptional()
-    @IsString()
-    coverArt?: string;
-  
-    @IsOptional()
-    @IsDateString()
-    releaseDate?: string;
-  
-    @IsOptional()
-    @IsString()
-    platform?: string;
-  
-    @IsOptional()
-    @IsObject()
-    customAttributes?: Record<string, any>;
-  
-    @IsOptional()
-    @IsArray()
-    categoryIds?: string[];
-  }
+  @IsOptional()
+  @IsString()
+  title?: string;
+
+  @IsOptional()
+  @IsArray()
+  alternateTitles?: string[];
+
+  @IsOptional()
+  @IsString()
+  coverArt?: string;
+
+  @IsOptional()
+  @IsDateString()
+  releaseDate?: string;
+
+  @IsOptional()
+  @IsString()
+  platform?: string;
+
+  @IsOptional()
+  @IsString()
+  consoleId?: string;
+
+  @IsOptional()
+  @IsEnum(['physical', 'digital'])
+  physicalDigital?: 'physical' | 'digital';
+
+  @IsOptional()
+  @IsObject()
+  customAttributes?: Record<string, any>;
+
+  @IsOptional()
+  @IsArray()
+  categoryIds?: string[];
+}

@@ -24,6 +24,11 @@ export class GamesController {
     return this.gamesService.findByCategory(categoryId);
   }
 
+  @Get('console/:consoleId')
+  findByConsole(@Param('consoleId') consoleId: string) {
+    return this.gamesService.findByConsole(consoleId);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.gamesService.findOne(id);

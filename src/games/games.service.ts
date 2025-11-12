@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { v4 as uuidv4 } from 'uuid';
 import { Game } from './entities/game.entity';
 import { CreateGameDto, UpdateGameDto } from './dto/create-game.dto';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class GamesService {
@@ -66,5 +66,9 @@ export class GamesService {
 
   findByCategory(categoryId: string): Game[] {
     return this.games.filter(game => game.categoryIds.includes(categoryId));
+  }
+
+  findByConsole(consoleId: string): Game[] {
+    return this.games.filter(game => game.consoleId === consoleId);
   }
 }

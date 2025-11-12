@@ -12,7 +12,10 @@ export class CategoriesController {
   }
 
   @Get()
-  findAll(@Query('type') type?: string) {
+  findAll(@Query('type') type?: string, @Query('search') search?: string) {
+    if (search) {
+      return this.categoriesService.search(search, type);
+    }
     if (type) {
       return this.categoriesService.findByType(type);
     }
