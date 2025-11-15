@@ -34,9 +34,13 @@ export class ConsolesService {
   search(query: string): Console[] {
     const lowerQuery = query.toLowerCase();
     return this.consoles.filter(console => 
-      console.name.toLowerCase().includes(lowerQuery) ||
-      console.model.toLowerCase().includes(lowerQuery)
+      console.model.toLowerCase().includes(lowerQuery) ||
+      console.region.toLowerCase().includes(lowerQuery)
     );
+  }
+
+  findByFamily(consoleFamilyId: string): Console[] {
+    return this.consoles.filter(c => c.consoleFamilyId === consoleFamilyId);
   }
 
   update(id: string, updateConsoleDto: UpdateConsoleDto): Console {

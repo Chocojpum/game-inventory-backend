@@ -33,7 +33,7 @@ export class PeripheralsService {
   }
 
   findByConsole(consoleId: string): Peripheral[] {
-    return this.peripherals.filter(p => p.consoleId === consoleId);
+    return this.peripherals.filter(p => p.consoleFamilyId === consoleId);
   }
 
   search(query: string): Peripheral[] {

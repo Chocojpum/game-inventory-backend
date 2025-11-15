@@ -15,11 +15,17 @@ export class CreateGameDto {
   releaseDate: string;
 
   @IsString()
-  platform: string;
+  consoleFamilyId: string;
 
   @IsOptional()
   @IsString()
   consoleId?: string;
+
+  @IsString()
+  developer: string;
+
+  @IsString()
+  region: string;
 
   @IsEnum(['physical', 'digital'])
   physicalDigital: 'physical' | 'digital';
@@ -52,11 +58,19 @@ export class UpdateGameDto {
 
   @IsOptional()
   @IsString()
-  platform?: string;
+  consoleFamilyId?: string;
 
   @IsOptional()
   @IsString()
   consoleId?: string;
+
+  @IsOptional()
+  @IsString()
+  developer?: string;
+
+  @IsOptional()
+  @IsString()
+  region?: string;
 
   @IsOptional()
   @IsEnum(['physical', 'digital'])

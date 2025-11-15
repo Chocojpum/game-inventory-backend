@@ -12,9 +12,12 @@ export class ConsolesController {
   }
 
   @Get()
-  findAll(@Query('search') search?: string) {
+  findAll(@Query('search') search?: string, @Query('familyId') familyId?: string) {
     if (search) {
       return this.consolesService.search(search);
+    }
+    if (familyId) {
+      return this.consolesService.findByFamily(familyId);
     }
     return this.consolesService.findAll();
   }

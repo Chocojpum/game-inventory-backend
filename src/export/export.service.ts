@@ -2,10 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { GamesService } from '../games/games.service';
 import { BacklogService } from '../backlog/backlog.service';
 import { ConsolesService } from '../consoles/consoles.service';
+import { ConsoleFamiliesService } from '../console-families/console-families.service';
 import { PeripheralsService } from '../peripherals/peripherals.service';
 import { CategoriesService } from '../categories/categories.service';
 import { AttributesService } from '../attributes/attributes.service';
 import * as XLSX from 'xlsx';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class ExportService {
@@ -13,6 +15,7 @@ export class ExportService {
     private gamesService: GamesService,
     private backlogService: BacklogService,
     private consolesService: ConsolesService,
+    private consoleFamiliesService: ConsoleFamiliesService,
     private peripheralsService: PeripheralsService,
     private categoriesService: CategoriesService,
     private attributesService: AttributesService,
@@ -20,6 +23,17 @@ export class ExportService {
 
   async exportToExcel(): Promise<Buffer> {
     const workbook = XLSX.utils.book_new();
+
+    // Export Console Families
+    const families = this.consoleFamiliesService.findAll();
+    const familiesSheet = XLSX.utils.json_to_sheet(families.map(f => ({
+      ID: f.id,
+      Name: f.name,
+      Developer: f.developer,
+      Generation: f.generation || '',
+      'Created At': f.createdAt,
+    })));
+    XLSX.utils.book_append_sheet(workbook, familiesSheet, 'Console Families');
 
     // Export Games
     const games = this.gamesService.findAll();
@@ -29,8 +43,10 @@ export class ExportService {
       'Alternate Titles': g.alternateTitles?.join('; ') || '',
       'Cover Art': g.coverArt,
       'Release Date': g.releaseDate,
-      Platform: g.platform,
+      'Console Family ID': g.consoleFamilyId,
       'Console ID': g.consoleId || '',
+      Developer: g.developer,
+      Region: g.region,
       'Physical/Digital': g.physicalDigital,
       'Category IDs': g.categoryIds.join('; '),
       'Custom Attributes': JSON.stringify(g.customAttributes),
@@ -56,8 +72,7 @@ export class ExportService {
     const consoles = this.consolesService.findAll();
     const consolesSheet = XLSX.utils.json_to_sheet(consoles.map(c => ({
       ID: c.id,
-      Name: c.name,
-      Developer: c.developer,
+      'Console Family ID': c.consoleFamilyId,
       'Release Date': c.releaseDate,
       Picture: c.picture,
       Region: c.region,
@@ -74,7 +89,8 @@ export class ExportService {
     const peripheralsSheet = XLSX.utils.json_to_sheet(peripherals.map(p => ({
       ID: p.id,
       Name: p.name,
-      'Console ID': p.consoleId,
+      'Console Family ID': p.consoleFamilyId,
+      Picture: p.picture,
       Quantity: p.quantity,
       Color: p.color,
       'Custom Attributes': JSON.stringify(p.customAttributes),
@@ -113,6 +129,7 @@ export class ExportService {
     const workbook = XLSX.read(buffer, { type: 'buffer' });
     const result = {
       imported: {
+        consoleFamilies: 0,
         games: 0,
         backlogs: 0,
         consoles: 0,
@@ -123,23 +140,56 @@ export class ExportService {
       errors: [],
     };
 
-    // Import Consoles first (referenced by games and peripherals)
-    if (workbook.SheetNames.includes('Consoles')) {
-      const consolesSheet = workbook.Sheets['Consoles'];
-      const consolesData = XLSX.utils.sheet_to_json(consolesSheet);
-      for (const row of consolesData as any[]) {
+    const existingIds = {
+      consoleFamilies: new Set(this.consoleFamiliesService.findAll().map(f => f.id)),
+      games: new Set(this.gamesService.findAll().map(g => g.id)),
+      backlogs: new Set(this.backlogService.findAll().map(b => b.id)),
+      consoles: new Set(this.consolesService.findAll().map(c => c.id)),
+      peripherals: new Set(this.peripheralsService.findAll().map(p => p.id)),
+      categories: new Set(this.categoriesService.findAll().map(c => c.id)),
+      attributes: new Set(this.attributesService.findAll().map(a => a.id)),
+    };
+
+    // Import Console Families first
+    if (workbook.SheetNames.includes('Console Families')) {
+      const sheet = workbook.Sheets['Console Families'];
+      const data = XLSX.utils.sheet_to_json(sheet);
+      for (const row of data as any[]) {
         try {
-          this.consolesService.create({
-            name: row.Name,
-            developer: row.Developer,
-            releaseDate: row['Release Date'],
-            picture: row.Picture,
-            region: row.Region,
-            color: row.Color,
-            model: row.Model,
-            customAttributes: row['Custom Attributes'] ? JSON.parse(row['Custom Attributes']) : {},
-          });
-          result.imported.consoles++;
+          const id = row.ID || uuidv4();
+          if (!existingIds.consoleFamilies.has(id)) {
+            this.consoleFamiliesService.create({
+              name: row.Name,
+              developer: row.Developer,
+              generation: row.Generation,
+            });
+            result.imported.consoleFamilies++;
+          }
+        } catch (error) {
+          result.errors.push(`Console family import error: ${error.message}`);
+        }
+      }
+    }
+
+    // Import Consoles
+    if (workbook.SheetNames.includes('Consoles')) {
+      const sheet = workbook.Sheets['Consoles'];
+      const data = XLSX.utils.sheet_to_json(sheet);
+      for (const row of data as any[]) {
+        try {
+          const id = row.ID || uuidv4();
+          if (!existingIds.consoles.has(id)) {
+            this.consolesService.create({
+              consoleFamilyId: row['Console Family ID'],
+              releaseDate: row['Release Date'],
+              picture: row.Picture,
+              region: row.Region,
+              color: row.Color,
+              model: row.Model,
+              customAttributes: row['Custom Attributes'] ? JSON.parse(row['Custom Attributes']) : {},
+            });
+            result.imported.consoles++;
+          }
         } catch (error) {
           result.errors.push(`Console import error: ${error.message}`);
         }
@@ -148,16 +198,19 @@ export class ExportService {
 
     // Import Categories
     if (workbook.SheetNames.includes('Categories')) {
-      const categoriesSheet = workbook.Sheets['Categories'];
-      const categoriesData = XLSX.utils.sheet_to_json(categoriesSheet);
-      for (const row of categoriesData as any[]) {
+      const sheet = workbook.Sheets['Categories'];
+      const data = XLSX.utils.sheet_to_json(sheet);
+      for (const row of data as any[]) {
         try {
-          this.categoriesService.create({
-            name: row.Name,
-            type: row.Type,
-            description: row.Description,
-          });
-          result.imported.categories++;
+          const id = row.ID || uuidv4();
+          if (!existingIds.categories.has(id)) {
+            this.categoriesService.create({
+              name: row.Name,
+              type: row.Type,
+              description: row.Description,
+            });
+            result.imported.categories++;
+          }
         } catch (error) {
           result.errors.push(`Category import error: ${error.message}`);
         }
@@ -166,17 +219,20 @@ export class ExportService {
 
     // Import Attributes
     if (workbook.SheetNames.includes('Attributes')) {
-      const attributesSheet = workbook.Sheets['Attributes'];
-      const attributesData = XLSX.utils.sheet_to_json(attributesSheet);
-      for (const row of attributesData as any[]) {
+      const sheet = workbook.Sheets['Attributes'];
+      const data = XLSX.utils.sheet_to_json(sheet);
+      for (const row of data as any[]) {
         try {
-          this.attributesService.create({
-            name: row.Name,
-            type: row.Type,
-            options: row.Options ? row.Options.split('; ') : undefined,
-            isGlobal: row['Is Global'],
-          });
-          result.imported.attributes++;
+          const id = row.ID || uuidv4();
+          if (!existingIds.attributes.has(id)) {
+            this.attributesService.create({
+              name: row.Name,
+              type: row.Type,
+              options: row.Options ? row.Options.split('; ') : undefined,
+              isGlobal: row['Is Global'],
+            });
+            result.imported.attributes++;
+          }
         } catch (error) {
           result.errors.push(`Attribute import error: ${error.message}`);
         }
@@ -185,42 +241,52 @@ export class ExportService {
 
     // Import Games
     if (workbook.SheetNames.includes('Games')) {
-      const gamesSheet = workbook.Sheets['Games'];
-      const gamesData = XLSX.utils.sheet_to_json(gamesSheet);
-      for (const row of gamesData as any[]) {
+      const sheet = workbook.Sheets['Games'];
+      const data = XLSX.utils.sheet_to_json(sheet);
+      for (const row of data as any[]) {
         try {
-          this.gamesService.create({
-            title: row.Title,
-            alternateTitles: row['Alternate Titles'] ? row['Alternate Titles'].split('; ') : undefined,
-            coverArt: row['Cover Art'],
-            releaseDate: row['Release Date'],
-            platform: row.Platform,
-            consoleId: row['Console ID'] || undefined,
-            physicalDigital: row['Physical/Digital'],
-            categoryIds: row['Category IDs'] ? row['Category IDs'].split('; ') : [],
-            customAttributes: row['Custom Attributes'] ? JSON.parse(row['Custom Attributes']) : {},
-          });
-          result.imported.games++;
+          const id = row.ID || uuidv4();
+          if (!existingIds.games.has(id)) {
+            const game = this.gamesService.create({
+              title: row.Title,
+              alternateTitles: row['Alternate Titles'] ? row['Alternate Titles'].split('; ') : undefined,
+              coverArt: row['Cover Art'],
+              releaseDate: row['Release Date'],
+              consoleFamilyId: row['Console Family ID'],
+              consoleId: row['Console ID'] || undefined,
+              developer: row.Developer,
+              region: row.Region,
+              physicalDigital: row['Physical/Digital'],
+              categoryIds: row['Category IDs'] ? row['Category IDs'].split('; ') : [],
+              customAttributes: row['Custom Attributes'] ? JSON.parse(row['Custom Attributes']) : {},
+            });
+            // Store the created game with its ID for backlog reference
+            existingIds.games.add(game.id);
+            result.imported.games++;
+          }
         } catch (error) {
           result.errors.push(`Game import error: ${error.message}`);
         }
       }
     }
 
-    // Import Backlog
+    // Import Backlog - MUST be after games
     if (workbook.SheetNames.includes('Backlog')) {
-      const backlogSheet = workbook.Sheets['Backlog'];
-      const backlogData = XLSX.utils.sheet_to_json(backlogSheet);
-      for (const row of backlogData as any[]) {
+      const sheet = workbook.Sheets['Backlog'];
+      const data = XLSX.utils.sheet_to_json(sheet);
+      for (const row of data as any[]) {
         try {
-          this.backlogService.create({
-            gameId: row['Game ID'],
-            completionDate: row['Completion Date'],
-            endingType: row['Ending Type'],
-            completionType: row['Completion Type'],
-            customAttributes: row['Custom Attributes'] ? JSON.parse(row['Custom Attributes']) : {},
-          });
-          result.imported.backlogs++;
+          const id = row.ID || uuidv4();
+          if (!existingIds.backlogs.has(id)) {
+            this.backlogService.create({
+              gameId: row['Game ID'],
+              completionDate: row['Completion Date'],
+              endingType: row['Ending Type'],
+              completionType: row['Completion Type'],
+              customAttributes: row['Custom Attributes'] ? JSON.parse(row['Custom Attributes']) : {},
+            });
+            result.imported.backlogs++;
+          }
         } catch (error) {
           result.errors.push(`Backlog import error: ${error.message}`);
         }
@@ -229,18 +295,22 @@ export class ExportService {
 
     // Import Peripherals
     if (workbook.SheetNames.includes('Peripherals')) {
-      const peripheralsSheet = workbook.Sheets['Peripherals'];
-      const peripheralsData = XLSX.utils.sheet_to_json(peripheralsSheet);
-      for (const row of peripheralsData as any[]) {
+      const sheet = workbook.Sheets['Peripherals'];
+      const data = XLSX.utils.sheet_to_json(sheet);
+      for (const row of data as any[]) {
         try {
-          this.peripheralsService.create({
-            name: row.Name,
-            consoleId: row['Console ID'],
-            quantity: row.Quantity,
-            color: row.Color,
-            customAttributes: row['Custom Attributes'] ? JSON.parse(row['Custom Attributes']) : {},
-          });
-          result.imported.peripherals++;
+          const id = row.ID || uuidv4();
+          if (!existingIds.peripherals.has(id)) {
+            this.peripheralsService.create({
+              name: row.Name,
+              consoleFamilyId: row['Console Family ID'],
+              quantity: row.Quantity,
+              color: row.Color,
+              customAttributes: row['Custom Attributes'] ? JSON.parse(row['Custom Attributes']) : {},
+              picture: row.Picture
+            });
+            result.imported.peripherals++;
+          }
         } catch (error) {
           result.errors.push(`Peripheral import error: ${error.message}`);
         }

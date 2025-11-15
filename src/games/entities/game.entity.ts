@@ -4,8 +4,10 @@ export class Game {
   alternateTitles?: string[];
   coverArt: string;
   releaseDate: string;
-  platform: string;
-  consoleId?: string; // Reference to Console
+  consoleFamilyId: string; // Reference to Console Family (e.g., "PlayStation 5")
+  consoleId?: string; // Reference to owned Console instance
+  developer: string;
+  region: string;
   physicalDigital: 'physical' | 'digital';
   customAttributes: Record<string, any>;
   categoryIds: string[];

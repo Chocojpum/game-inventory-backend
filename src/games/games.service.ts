@@ -71,4 +71,8 @@ export class GamesService {
   findByConsole(consoleId: string): Game[] {
     return this.games.filter(game => game.consoleId === consoleId);
   }
+
+  findByConsoleFamily(consoleFamilyId: string): Game[] {
+    return this.games.filter(game => game.consoleFamilyId === consoleFamilyId);
+  }
 }
