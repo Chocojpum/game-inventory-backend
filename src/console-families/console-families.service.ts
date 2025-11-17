@@ -7,9 +7,9 @@ import { v4 as uuidv4 } from 'uuid';
 export class ConsoleFamiliesService {
   private consoleFamilies: ConsoleFamily[] = [];
 
-  create(dto: CreateConsoleFamilyDto): ConsoleFamily {
+  create(dto: CreateConsoleFamilyDto, customId?: string): ConsoleFamily {
     const family: ConsoleFamily = {
-      id: uuidv4(),
+      id: customId || uuidv4(),
       ...dto,
       createdAt: new Date(),
     };

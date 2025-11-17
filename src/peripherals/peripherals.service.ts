@@ -7,9 +7,9 @@ import { v4 as uuidv4 } from 'uuid';
 export class PeripheralsService {
   private peripherals: Peripheral[] = [];
 
-  create(createPeripheralDto: CreatePeripheralDto): Peripheral {
+  create(createPeripheralDto: CreatePeripheralDto, customId?: string): Peripheral {
     const peripheral: Peripheral = {
-      id: uuidv4(),
+      id: customId || uuidv4(),
       ...createPeripheralDto,
       quantity: createPeripheralDto.quantity || 1,
       customAttributes: createPeripheralDto.customAttributes || {},

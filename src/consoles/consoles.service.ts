@@ -7,9 +7,9 @@ import { v4 as uuidv4 } from 'uuid';
 export class ConsolesService {
   private consoles: Console[] = [];
 
-  create(createConsoleDto: CreateConsoleDto): Console {
+  create(createConsoleDto: CreateConsoleDto, customId?: string): Console {
     const console: Console = {
-      id: uuidv4(),
+      id: customId || uuidv4(),
       ...createConsoleDto,
       customAttributes: createConsoleDto.customAttributes || {},
       createdAt: new Date(),

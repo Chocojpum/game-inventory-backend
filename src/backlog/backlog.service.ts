@@ -7,9 +7,9 @@ import { v4 as uuidv4 } from 'uuid';
 export class BacklogService {
   private backlogs: Backlog[] = [];
 
-  create(createBacklogDto: CreateBacklogDto): Backlog {
+  create(createBacklogDto: CreateBacklogDto, customId?: string): Backlog {
     const backlog: Backlog = {
-      id: uuidv4(),
+      id: customId || uuidv4(),
       ...createBacklogDto,
       customAttributes: createBacklogDto.customAttributes || {},
       createdAt: new Date(),

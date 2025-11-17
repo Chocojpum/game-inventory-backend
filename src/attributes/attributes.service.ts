@@ -7,9 +7,9 @@ import { v4 as uuidv4 } from 'uuid';
 export class AttributesService {
   private attributes: Attribute[] = [];
 
-  create(createAttributeDto: CreateAttributeDto): Attribute {
+  create(createAttributeDto: CreateAttributeDto, customId?: string): Attribute {
     const attribute: Attribute = {
-      id: uuidv4(),
+      id: customId || uuidv4(),
       ...createAttributeDto,
       isGlobal: createAttributeDto.isGlobal || false,
       createdAt: new Date(),

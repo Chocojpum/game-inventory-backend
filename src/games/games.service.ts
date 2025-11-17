@@ -7,9 +7,9 @@ import { v4 as uuidv4 } from 'uuid';
 export class GamesService {
   private games: Game[] = [];
 
-  create(createGameDto: CreateGameDto): Game {
+  create(createGameDto: CreateGameDto, customId?: string): Game {
     const game: Game = {
-      id: uuidv4(),
+      id: customId || uuidv4(),
       ...createGameDto,
       customAttributes: createGameDto.customAttributes || {},
       categoryIds: createGameDto.categoryIds || [],

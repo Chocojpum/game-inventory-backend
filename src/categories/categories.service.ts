@@ -7,9 +7,9 @@ import { v4 as uuidv4 } from 'uuid';
 export class CategoriesService {
   private categories: Category[] = [];
 
-  create(createCategoryDto: CreateCategoryDto): Category {
+  create(createCategoryDto: CreateCategoryDto, customId?: string): Category {
     const category: Category = {
-      id: uuidv4(),
+      id: customId || uuidv4(),
       ...createCategoryDto,
       createdAt: new Date(),
     };

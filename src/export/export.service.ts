@@ -90,9 +90,9 @@ export class ExportService {
       ID: p.id,
       Name: p.name,
       'Console Family ID': p.consoleFamilyId,
-      Picture: p.picture,
       Quantity: p.quantity,
       Color: p.color,
+      Picture: p.picture,
       'Custom Attributes': JSON.stringify(p.customAttributes),
       'Created At': p.createdAt,
       'Updated At': p.updatedAt,
@@ -156,13 +156,13 @@ export class ExportService {
       const data = XLSX.utils.sheet_to_json(sheet);
       for (const row of data as any[]) {
         try {
-          const id = row.ID || uuidv4();
-          if (!existingIds.consoleFamilies.has(id)) {
+          const id = row.ID;
+          if (id && !existingIds.consoleFamilies.has(id)) {
             this.consoleFamiliesService.create({
               name: row.Name,
               developer: row.Developer,
               generation: row.Generation,
-            });
+            }, id);
             result.imported.consoleFamilies++;
           }
         } catch (error) {
@@ -177,8 +177,8 @@ export class ExportService {
       const data = XLSX.utils.sheet_to_json(sheet);
       for (const row of data as any[]) {
         try {
-          const id = row.ID || uuidv4();
-          if (!existingIds.consoles.has(id)) {
+          const id = row.ID;
+          if (id && !existingIds.consoles.has(id)) {
             this.consolesService.create({
               consoleFamilyId: row['Console Family ID'],
               releaseDate: row['Release Date'],
@@ -187,7 +187,7 @@ export class ExportService {
               color: row.Color,
               model: row.Model,
               customAttributes: row['Custom Attributes'] ? JSON.parse(row['Custom Attributes']) : {},
-            });
+            }, id);
             result.imported.consoles++;
           }
         } catch (error) {
@@ -202,13 +202,13 @@ export class ExportService {
       const data = XLSX.utils.sheet_to_json(sheet);
       for (const row of data as any[]) {
         try {
-          const id = row.ID || uuidv4();
-          if (!existingIds.categories.has(id)) {
+          const id = row.ID;
+          if (id && !existingIds.categories.has(id)) {
             this.categoriesService.create({
               name: row.Name,
               type: row.Type,
               description: row.Description,
-            });
+            }, id);
             result.imported.categories++;
           }
         } catch (error) {
@@ -223,14 +223,14 @@ export class ExportService {
       const data = XLSX.utils.sheet_to_json(sheet);
       for (const row of data as any[]) {
         try {
-          const id = row.ID || uuidv4();
-          if (!existingIds.attributes.has(id)) {
+          const id = row.ID;
+          if (id && !existingIds.attributes.has(id)) {
             this.attributesService.create({
               name: row.Name,
               type: row.Type,
               options: row.Options ? row.Options.split('; ') : undefined,
               isGlobal: row['Is Global'],
-            });
+            }, id);
             result.imported.attributes++;
           }
         } catch (error) {
@@ -245,11 +245,11 @@ export class ExportService {
       const data = XLSX.utils.sheet_to_json(sheet);
       for (const row of data as any[]) {
         try {
-          const id = row.ID || uuidv4();
-          if (!existingIds.games.has(id)) {
-            const game = this.gamesService.create({
+          const id = row.ID;
+          if (id && !existingIds.games.has(id)) {
+            this.gamesService.create({
               title: row.Title,
-              alternateTitles: row['Alternate Titles'] ? row['Alternate Titles'].split('; ') : undefined,
+              alternateTitles: row['Alternate Titles'] ? row['Alternate Titles'].split('; ').filter(t => t) : undefined,
               coverArt: row['Cover Art'],
               releaseDate: row['Release Date'],
               consoleFamilyId: row['Console Family ID'],
@@ -257,11 +257,9 @@ export class ExportService {
               developer: row.Developer,
               region: row.Region,
               physicalDigital: row['Physical/Digital'],
-              categoryIds: row['Category IDs'] ? row['Category IDs'].split('; ') : [],
+              categoryIds: row['Category IDs'] ? row['Category IDs'].split('; ').filter(c => c) : [],
               customAttributes: row['Custom Attributes'] ? JSON.parse(row['Custom Attributes']) : {},
-            });
-            // Store the created game with its ID for backlog reference
-            existingIds.games.add(game.id);
+            }, id);
             result.imported.games++;
           }
         } catch (error) {
@@ -276,15 +274,15 @@ export class ExportService {
       const data = XLSX.utils.sheet_to_json(sheet);
       for (const row of data as any[]) {
         try {
-          const id = row.ID || uuidv4();
-          if (!existingIds.backlogs.has(id)) {
+          const id = row.ID;
+          if (id && !existingIds.backlogs.has(id)) {
             this.backlogService.create({
               gameId: row['Game ID'],
-              completionDate: row['Completion Date'],
+              completionDate: row['Completion Date'] || null,
               endingType: row['Ending Type'],
               completionType: row['Completion Type'],
               customAttributes: row['Custom Attributes'] ? JSON.parse(row['Custom Attributes']) : {},
-            });
+            }, id);
             result.imported.backlogs++;
           }
         } catch (error) {
@@ -299,16 +297,16 @@ export class ExportService {
       const data = XLSX.utils.sheet_to_json(sheet);
       for (const row of data as any[]) {
         try {
-          const id = row.ID || uuidv4();
-          if (!existingIds.peripherals.has(id)) {
+          const id = row.ID;
+          if (id && !existingIds.peripherals.has(id)) {
             this.peripheralsService.create({
               name: row.Name,
               consoleFamilyId: row['Console Family ID'],
               quantity: row.Quantity,
               color: row.Color,
+              picture: row.Picture,
               customAttributes: row['Custom Attributes'] ? JSON.parse(row['Custom Attributes']) : {},
-              picture: row.Picture
-            });
+            }, id);
             result.imported.peripherals++;
           }
         } catch (error) {
