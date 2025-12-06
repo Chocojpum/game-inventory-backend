@@ -21,6 +21,6 @@ export class ExportController {
   @Post('import')
   @UseInterceptors(FileInterceptor('file'))
   async importFromExcel(@UploadedFile() file) {
-    return this.exportService.importFromExcel(file.buffer);
+    return this.exportService.importFromExcel(file ? file.buffer : null);
   }
 }
